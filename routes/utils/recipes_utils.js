@@ -35,9 +35,25 @@ async function getRecipeDetails(recipe_id) {
     }
 }
 
-
+/**
+ * Get previews for multiple recipes by ID
+ * @param {Array} recipe_ids - array of Spoonacular recipe IDs
+ * @returns {Array} recipe previews
+ */
+async function getRecipesPreview(recipe_ids) {
+  try {
+    const previewPromises = recipe_ids.map((id) =>
+      getRecipeDetails(id)
+    );
+    const recipes = await Promise.all(previewPromises);
+    return recipes;
+  } catch (error) {
+    throw error;
+  }
+}
 
 exports.getRecipeDetails = getRecipeDetails;
+exports.getRecipesPreview = getRecipesPreview;
 
 
 
