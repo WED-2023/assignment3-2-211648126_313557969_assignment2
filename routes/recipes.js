@@ -7,7 +7,7 @@ router.get("/", (req, res) => res.send("im here"));
 
 
 /**
- * This path returns a full details of a recipe by its id
+ * This path returns a full details of a recipe by its id (from outer API)
  */
 router.get("/:recipeId", async (req, res, next) => {
   try {
@@ -45,5 +45,20 @@ router.post("/", async (req, res, next) => {
     next(error);
   }
 });
+
+/**
+ * This path searches recipes from the external Spoonacular API based on query parameters
+ */
+router.get("/search", async (req, res, next) => {
+  try {
+    console.log("ROUTER SEARCH RECIPES FROM API")
+    const { query, cuisine, diet, intolerance, limit } = req.query;
+    const results = await recipes_utils.searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit });
+    res.status(200).send(results);
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 module.exports = router;

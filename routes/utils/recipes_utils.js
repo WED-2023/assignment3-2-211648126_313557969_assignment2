@@ -86,9 +86,39 @@ async function insertRecipe(user_id, recipeData) {
   await DButils.execQuery(insertQuery);
 }
 
+/**
+ * Search recipes using Spoonacular API
+ */
+async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }) {
+  try {
+    console.log("Calling Spoonacular with:", { query, cuisine, diet, intolerance, limit });
+
+    const response = await axios.get(`${api_domain}/complexSearch`, {
+      params: {
+        query,
+        cuisine,
+        diet,
+        intolerances: intolerance,
+        number: limit || 10,
+        apiKey: process.env.spoonacular_apiKey,
+      },
+    });
+
+    return response.data.results.map((recipe) => ({
+      id: recipe.id,
+      title: recipe.title,
+      image: recipe.image,
+      readyInMinutes: recipe.readyInMinutes,
+    }));
+  } catch (error) {
+    console.error("Spoonacular API call failed:", error.message);
+    throw error; // make sure Express sees the error
+  }
+}
+
 exports.getRecipeDetails = getRecipeDetails;
 exports.getRecipesPreview = getRecipesPreview;
 exports.insertRecipe = insertRecipe;
-
+exports.searchRecipesFromAPI = searchRecipesFromAPI;
 
 
