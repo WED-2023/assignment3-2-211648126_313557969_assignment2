@@ -211,7 +211,26 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Recipe'
+                  $ref: '#/components/schemas/FamilyRecipe'
+    post:
+      tags: [User]
+      summary: Add a new family recipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FamilyRecipe'
+      responses:
+        '201':
+          description: Family recipe successfully created
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized - user not logged in
+        '500':
+          description: Internal server error
+
 
 components:
   schemas:
@@ -264,3 +283,39 @@ components:
             - Prepare crust and place filling inside
             - Bake for 45 minutes
         servings: { type: integer, example: 6 }
+    
+    FamilyRecipe:
+      type: object
+      required:
+        - title
+        - image
+        - occasion
+        - originator_name
+        - instructions
+        - ingredients
+      properties:
+        title:
+          type: string
+          example: Grandma's Apple Pie
+        image:
+          type: string
+          format: uri
+          example: https://example.com/images/apple-pie.jpg
+        occasion:
+          type: string
+          example: Holiday
+        originator_name:
+          type: string
+          example: Grandma Sarah
+        instructions:
+          type: string
+          example: |
+            Preheat oven to 180°C
+            Mix apples with sugar
+            Bake for 45 minutes
+        ingredients:
+          type: string
+          example: |
+            3 apples, sliced
+            2 cups flour
+            1/2 cup sugar
