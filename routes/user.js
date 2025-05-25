@@ -79,6 +79,40 @@ router.get('/family', async (req, res, next) => {
   }
 });
 
+/**
+ * This path adds a new family recipe for the logged-in user
+ */
+router.post('/family', async (req, res, next) => {
+  try {
+    const user_id = req.session.user_id;
+    const {
+      title,
+      image,
+      occasion,
+      originator_name,
+      instructions,
+      ingredients
+    } = req.body;
+
+    if (!title || !image || !occasion || !originator_name || !instructions || !ingredients) {
+      return res.status(400).send("Missing required fields");
+    }
+
+    await user_utils.addFamilyRecipe(
+      user_id,
+      title,
+      image,
+      occasion,
+      originator_name,
+      instructions,
+      ingredients
+    );
+
+    res.status(201).send("Family recipe successfully created");
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 module.exports = router;
