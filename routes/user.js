@@ -4,6 +4,7 @@ const DButils = require("./utils/DButils");
 const user_utils = require("./utils/user_utils");
 const recipe_utils = require("./utils/recipes_utils");
 
+
 /**
  * Authenticate all incoming requests by middleware
  */
@@ -52,6 +53,31 @@ router.get('/favorites', async (req,res,next) => {
   }
 });
 
+/**
+ * This path returns the personal recipes created by the logged-in user
+ */
+router.get('/recipes', async (req, res, next) => {
+  try {
+    const user_id = req.session.user_id;
+    const personalRecipes = await user_utils.getUserRecipes(user_id);
+    res.status(200).json(personalRecipes);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * This path returns the family recipes added by the logged-in user
+ */
+router.get('/family', async (req, res, next) => {
+  try {
+    const user_id = req.session.user_id;
+    const familyRecipes = await user_utils.getUserFamilyRecipes(user_id);
+    res.status(200).json(familyRecipes);
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 
