@@ -7,8 +7,6 @@ const DButils = require("./DButils");
  * Get recipes list from spooncular response and extract the relevant recipe data for preview
  * @param {*} recipes_info 
  */
-
-
 async function getRecipeInformation(recipe_id) {
     return await axios.get(`${api_domain}/${recipe_id}/information`, {
         params: {
@@ -100,7 +98,7 @@ async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }
         diet,
         intolerances: intolerance,
         number: limit || 10,
-        apiKey: process.env.spoonacular_apiKey,
+        apiKey: process.env.spooncular_apiKey,
       },
     });
 
@@ -116,9 +114,30 @@ async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }
   }
 }
 
+async function getRandomRecipesFromAPI(limit) {
+  const response = await axios.get(`${api_domain}/random`, {
+    params: {
+      number: limit || 5,
+      apiKey: process.env.spooncular_apiKey,
+    },
+  });
+
+  // Format result like other previews
+  return response.data.recipes.map((recipe) => ({
+    id: recipe.id,
+    title: recipe.title,
+    image: recipe.image,
+    readyInMinutes: recipe.readyInMinutes,
+    vegan: recipe.vegan,
+    vegetarian: recipe.vegetarian,
+    glutenFree: recipe.glutenFree,
+  }));
+}
+
 exports.getRecipeDetails = getRecipeDetails;
 exports.getRecipesPreview = getRecipesPreview;
 exports.insertRecipe = insertRecipe;
 exports.searchRecipesFromAPI = searchRecipesFromAPI;
+exports.getRandomRecipesFromAPI = getRandomRecipesFromAPI;
 
 

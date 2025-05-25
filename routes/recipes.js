@@ -3,20 +3,22 @@ var router = express.Router();
 const recipes_utils = require("./utils/recipes_utils");
 const DButils = require("./utils/DButils");
 
-router.get("/", (req, res) => res.send("im here"));
-
+//router.get("/", (req, res) => res.send("im here"));
 
 /**
- * This path returns a full details of a recipe by its id (from outer API)
+ * This path returns a list of random recipes from Spoonacular
  */
-router.get("/:recipeId", async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
-    const recipe = await recipes_utils.getRecipeDetails(req.params.recipeId);
-    res.send(recipe);
+    const limit = req.query.limit || 5;
+    const results = await recipes_utils.getRandomRecipesFromAPI(limit);
+    res.status(200).send(results);
   } catch (error) {
     next(error);
   }
 });
+
+
 
 /**
  * This path allows an authenticated user to create a new recipe.
@@ -60,5 +62,17 @@ router.get("/search", async (req, res, next) => {
   }
 });
 
+
+/**
+ * This path returns a full details of a recipe by its id (from outer API)
+ */
+router.get("/:recipeId", async (req, res, next) => {
+  try {
+    const recipe = await recipes_utils.getRecipeDetails(req.params.recipeId);
+    res.send(recipe);
+  } catch (error) {
+    next(error);
+  }
+});
 
 module.exports = router;
