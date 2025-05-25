@@ -1,14 +1,12 @@
 const axios = require("axios");
 const api_domain = "https://api.spoonacular.com/recipes";
-
+const DButils = require("./DButils");
 
 
 /**
  * Get recipes list from spooncular response and extract the relevant recipe data for preview
  * @param {*} recipes_info 
  */
-
-
 async function getRecipeInformation(recipe_id) {
     return await axios.get(`${api_domain}/${recipe_id}/information`, {
         params: {
@@ -52,8 +50,94 @@ async function getRecipesPreview(recipe_ids) {
   }
 }
 
+/**
+ * Insert a custom recipe into the user_recipes table
+ */
+async function insertRecipe(user_id, recipeData) {
+  const {
+    id, //not in use
+    title,
+    image,
+    duration,
+    vegan,
+    vegetarian,
+    glutenFree,
+    ingredients,
+    steps,
+    servings,
+  } = recipeData;
+
+  const ingredientsJSON = JSON.stringify(ingredients);
+  const instructions = JSON.stringify(steps);
+
+  const veganVal = vegan ? 1 : 0;
+  const vegetarianVal = vegetarian ? 1 : 0;
+  const glutenFreeVal = glutenFree ? 1 : 0;
+
+  const insertQuery = `
+  INSERT INTO user_recipes 
+    (user_id, title, image, prep_time, servings, instructions, ingredients, is_vegan, is_vegetarian, is_gluten_free)
+  VALUES 
+    (${user_id}, '${title.replace(/'/g, "''")}', '${image.replace(/'/g, "''")}', ${duration}, ${servings}, '${instructions}', '${ingredientsJSON}', ${veganVal}, ${vegetarianVal}, ${glutenFreeVal});
+    `;
+
+  await DButils.execQuery(insertQuery);
+}
+
+/**
+ * Search recipes using Spoonacular API
+ */
+async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }) {
+  try {
+    console.log("Calling Spoonacular with:", { query, cuisine, diet, intolerance, limit });
+
+    const response = await axios.get(`${api_domain}/complexSearch`, {
+      params: {
+        query,
+        cuisine,
+        diet,
+        intolerances: intolerance,
+        number: limit || 10,
+        apiKey: process.env.spooncular_apiKey,
+      },
+    });
+
+    return response.data.results.map((recipe) => ({
+      id: recipe.id,
+      title: recipe.title,
+      image: recipe.image,
+      readyInMinutes: recipe.readyInMinutes,
+    }));
+  } catch (error) {
+    console.error("Spoonacular API call failed:", error.message);
+    throw error; // make sure Express sees the error
+  }
+}
+
+async function getRandomRecipesFromAPI(limit) {
+  const response = await axios.get(`${api_domain}/random`, {
+    params: {
+      number: limit || 5,
+      apiKey: process.env.spooncular_apiKey,
+    },
+  });
+
+  // Format result like other previews
+  return response.data.recipes.map((recipe) => ({
+    id: recipe.id,
+    title: recipe.title,
+    image: recipe.image,
+    readyInMinutes: recipe.readyInMinutes,
+    vegan: recipe.vegan,
+    vegetarian: recipe.vegetarian,
+    glutenFree: recipe.glutenFree,
+  }));
+}
+
 exports.getRecipeDetails = getRecipeDetails;
 exports.getRecipesPreview = getRecipesPreview;
-
+exports.insertRecipe = insertRecipe;
+exports.searchRecipesFromAPI = searchRecipesFromAPI;
+exports.getRandomRecipesFromAPI = getRandomRecipesFromAPI;
 
 
