@@ -2,6 +2,11 @@ const axios = require("axios");
 const api_domain = "https://api.spoonacular.com/recipes";
 const DButils = require("./DButils");
 
+// ────────────────────────────────────────────────────────────
+// In-memory cache  (key = recipe_id, value = recipe object)
+// You can replace this Map with node-cache, lru-cache or Redis.
+// ────────────────────────────────────────────────────────────
+const recipeCache = new Map();
 
 /**
  * Get recipes list from spooncular response and extract the relevant recipe data for preview
@@ -17,20 +22,46 @@ async function getRecipeInformation(recipe_id) {
 }
 
 async function getRecipeDetails(recipe_id) {
-    let recipe_info = await getRecipeInformation(recipe_id);
-    let { id, title, readyInMinutes, image, aggregateLikes, vegan, vegetarian, glutenFree } = recipe_info.data;
+    // let recipe_info = await getRecipeInformation(recipe_id);
+    // let { id, title, readyInMinutes, image, aggregateLikes, vegan, vegetarian, glutenFree } = recipe_info.data;
 
-    return {
-        id: id,
-        title: title,
-        readyInMinutes: readyInMinutes,
-        image: image,
-        popularity: aggregateLikes,
-        vegan: vegan,
-        vegetarian: vegetarian,
-        glutenFree: glutenFree,
+    // return {
+    //     id: id,
+    //     title: title,
+    //     readyInMinutes: readyInMinutes,
+    //     image: image,
+    //     popularity: aggregateLikes,
+    //     vegan: vegan,
+    //     vegetarian: vegetarian,
+    //     glutenFree: glutenFree,
         
+    // }
+
+    // 1) return from cache if present
+    if (recipeCache.has(recipe_id)) {
+      return recipeCache.get(recipe_id);
     }
+
+    // 2) fetch from Spoonacular
+    const recipe_info = await getRecipeInformation(recipe_id);
+    const { id, title, readyInMinutes, image, aggregateLikes,
+            vegan, vegetarian, glutenFree } = recipe_info.data;
+
+    // 3) build the object we return everywhere
+    const recipe = {
+      id,
+      title,
+      readyInMinutes,
+      image,
+      popularity: aggregateLikes,
+      vegan,
+      vegetarian,
+      glutenFree,
+    };
+
+    // 4) store in cache for future requests
+    recipeCache.set(recipe_id, recipe);
+    return recipe;
 }
 
 /**
@@ -91,7 +122,8 @@ async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }
   try {
     console.log("Calling Spoonacular with:", { query, cuisine, diet, intolerance, limit });
 
-    const response = await axios.get(`${api_domain}/complexSearch`, {
+    // 1) Initial search (IDs + basic fields)
+    const searchRes = await axios.get(`${api_domain}/complexSearch`, {
       params: {
         query,
         cuisine,
@@ -102,15 +134,24 @@ async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }
       },
     });
 
-    return response.data.results.map((recipe) => ({
-      id: recipe.id,
-      title: recipe.title,
-      image: recipe.image,
-      readyInMinutes: recipe.readyInMinutes,
-    }));
+    const searchResults = searchRes.data.results;        // array of {id,title,image}
+
+    // 2) For each ID, fetch full info to get readyInMinutes
+    const infoPromises = searchResults.map(r =>
+      getRecipeInformation(r.id).then(info => ({
+        id:             r.id,
+        title:          r.title,
+        image:          r.image,
+        duration:       info.data.readyInMinutes,   // <-- add duration
+      }))
+    );
+
+    // 3) Wait for all info requests
+    const recipesWithDuration = await Promise.all(infoPromises);
+    return recipesWithDuration;
   } catch (error) {
     console.error("Spoonacular API call failed:", error.message);
-    throw error; // make sure Express sees the error
+    throw error; // let Express error-handler catch it
   }
 }
 

@@ -133,7 +133,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Recipe'
+                  $ref: '#/components/schemas/RecipePreview'
 
   /recipes/{id}:
     get:
@@ -319,3 +319,18 @@ components:
             3 apples, sliced
             2 cups flour
             1/2 cup sugar
+    RecipePreview:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        title:
+          type: string
+          example: Grandma's Apple Pie
+        image:
+          type: string
+          example: https://example.com/images/apple-pie.jpg
+        duration:
+          type: integer
+          example: 45
