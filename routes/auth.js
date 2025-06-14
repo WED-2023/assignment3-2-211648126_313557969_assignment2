@@ -29,11 +29,6 @@ router.post("/register", async (req, res, next) => {
       throw { status: 409, message: "Email is already in use" };
     }
 
-    let existingEmails = await DButils.execQuery("SELECT email FROM users");
-    if (existingEmails.find((x) => x.email === user_details.email)) {
-      throw { status: 409, message: "Email is already in use" };
-    }
-
     // add the new username
     let hash_password = bcrypt.hashSync(
       user_details.password,
