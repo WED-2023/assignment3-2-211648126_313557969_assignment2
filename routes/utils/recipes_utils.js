@@ -130,7 +130,7 @@ async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }
         diet,
         intolerances: intolerance,
         number: limit || 10,
-        apiKey: process.env.spoonacular_apiKey,
+        apiKey: process.env.spooncular_apiKey,
       },
     });
 
