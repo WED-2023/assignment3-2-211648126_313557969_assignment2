@@ -198,39 +198,44 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Recipe'
+  
+  /users/watched:
+    get:
+      tags: [User]
+      summary: Get user's watched recipes
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 5
+          description: Get users latest maximum number of watched recipes to return
+      responses:
+        '200':
+          description: List of watched recipes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recipe'
 
-  # /users/family:
-  #   get:
-  #     tags: [User]
-  #     summary: Get user's family recipes
-  #     responses:
-  #       '200':
-  #         description: Family recipes
-  #         content:
-  #           application/json:
-  #             schema:
-  #               type: array
-  #               items:
-  #                 $ref: '#/components/schemas/FamilyRecipe'
-  #   post:
-  #     tags: [User]
-  #     summary: Add a new family recipe
-  #     requestBody:
-  #       required: true
-  #       content:
-  #         application/json:
-  #           schema:
-  #             $ref: '#/components/schemas/FamilyRecipe'
-  #     responses:
-  #       '201':
-  #         description: Family recipe successfully created
-  #       '400':
-  #         description: Invalid input
-  #       '401':
-  #         description: Unauthorized - user not logged in
-  #       '500':
-  #         description: Internal server error
-
+    post:
+      tags: [User]
+      summary: Mark recipe as watched
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipeId:
+                  type: integer
+                  example: 101
+      responses:
+        '201':
+          description: Recipe marked as watched
 
 components:
   schemas:
