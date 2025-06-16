@@ -58,7 +58,7 @@ async function getRecipeInformation(recipe_id, userId = null) {
   const {
     id,
     title,
-    readyInMinutes: duration,
+    duration: duration,
     image,
     vegan,
     vegetarian,
@@ -208,7 +208,7 @@ async function getRandomRecipesFromAPI(limit) {
     id: recipe.id,
     title: recipe.title,
     image: recipe.image,
-    readyInMinutes: recipe.readyInMinutes,
+    duration: recipe.readyInMinutes,
     vegan: recipe.vegan,
     vegetarian: recipe.vegetarian,
     glutenFree: recipe.glutenFree,
