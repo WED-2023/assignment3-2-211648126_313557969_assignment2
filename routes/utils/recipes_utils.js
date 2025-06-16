@@ -9,59 +9,106 @@ const DButils = require("./DButils");
 const recipeCache = new Map();
 
 /**
- * Get recipes list from spooncular response and extract the relevant recipe data for preview
- * @param {*} recipes_info 
+ * Fetch **all** data we need for a single recipe and
+ * return it in the structure the frontend expects
+ *
+ * ───────────── data sources ─────────────
+ * • basic info  → GET /{id}/information
+ * • ingredients → GET /{id}/ingredientWidget.json
+ * • steps       → GET /{id}/analyzedInstructions
+ * ---------------------------------------
+ *
+ * The function also merges `favorite` / `viewed` flags when
+ * a userId is passed – so every caller automatically gets them.
  */
-async function getRecipeInformation(recipe_id) {
-    return await axios.get(`${api_domain}/${recipe_id}/information`, {
-        params: {
-            includeNutrition: false,
-            apiKey: process.env.spooncular_apiKey
-        }
-    });
+async function getRecipeInformation(recipe_id, userId = null) {
+  /* 1.  Serve from cache if possible */
+  if (recipeCache.has(recipe_id)) {
+    const cached = recipeCache.get(recipe_id);
+    // if we get here with a userId we still have to add the flags
+    if (userId && !('favorite' in cached)) {
+      await addFlags([cached], userId);
+    }
+    return cached;
+  }
+
+  /* 2.  Parallel API calls */
+  const [infoRes, ingRes, stepRes] = await Promise.all([
+    axios.get(`${api_domain}/${recipe_id}/information`, {
+      params: { includeNutrition: false, apiKey: process.env.spoonacular_apiKey },
+    }),
+    axios.get(`${api_domain}/${recipe_id}/ingredientWidget.json`, {
+      params: { apiKey: process.env.spoonacular_apiKey },
+    }),
+    axios.get(`${api_domain}/${recipe_id}/analyzedInstructions`, {
+      params: { apiKey: process.env.spoonacular_apiKey },
+    }),
+  ]);
+
+  /* 3.  Build ingredients array ("2 cups sugar" …) */
+  const ingredients = ingRes.data.ingredients.map((ing) => {
+    const { value, unit } = ing.amount.metric;      // metric units
+    return `${value} ${unit} ${ing.name}`;
+  });
+
+  /* 4.  Build steps array */
+  const steps = (stepRes.data[0]?.steps || []).map((s) => s.step);
+
+  /* 5.  Assemble our recipe object */
+  const {
+    id,
+    title,
+    readyInMinutes: duration,
+    image,
+    vegan,
+    vegetarian,
+    glutenFree,
+    servings,
+  } = infoRes.data;
+
+  const recipeObj = {
+    id,
+    title,
+    duration,
+    image,
+    vegan,
+    vegetarian,
+    glutenFree,
+    servings,
+    ingredients,
+    steps,
+    /* flags get added in a moment */
+  };
+
+  /* 6.  Add favorite / viewed flags when we know the user */
+  if (userId) await addFlags([recipeObj], userId);
+
+  /* 7.  Save to cache & return */
+  recipeCache.set(recipe_id, recipeObj);
+  return recipeObj;
 }
 
-async function getRecipeDetails(recipe_id) {
-    // let recipe_info = await getRecipeInformation(recipe_id);
-    // let { id, title, readyInMinutes, image, aggregateLikes, vegan, vegetarian, glutenFree } = recipe_info.data;
+/* helper ----------------------------------------------------*/
+async function addFlags(recArr, userId) {
+  const favIds  = await DButils.execQuery(
+    `SELECT API_recipe_id FROM favorite_recipes WHERE user_id = ${userId}`
+  );
+  const viewIds = await DButils.execQuery(
+    `SELECT API_recipe_id FROM watched_recipes WHERE user_id = ${userId}`
+  );
 
-    // return {
-    //     id: id,
-    //     title: title,
-    //     readyInMinutes: readyInMinutes,
-    //     image: image,
-    //     popularity: aggregateLikes,
-    //     vegan: vegan,
-    //     vegetarian: vegetarian,
-    //     glutenFree: glutenFree,
-        
-    // }
+  const favSet  = new Set(favIds.map((r) => r.API_recipe_id));
+  const viewSet = new Set(viewIds.map((r) => r.API_recipe_id));
 
-    // 1) return from cache if present
-    if (recipeCache.has(recipe_id)) {
-      return recipeCache.get(recipe_id);
-    }
+  recArr.forEach((r) => {
+    r.favorite = favSet.has(r.id);
+    r.viewed   = viewSet.has(r.id);
+  });
+}
 
-    // 2) fetch from Spoonacular
-    const recipe_info = await getRecipeInformation(recipe_id);
-    const { id, title, readyInMinutes, image, aggregateLikes,
-            vegan, vegetarian, glutenFree } = recipe_info.data;
-
-    // 3) build the object we return everywhere
-    const recipe = {
-      id,
-      title,
-      readyInMinutes,
-      image,
-      popularity: aggregateLikes,
-      vegan,
-      vegetarian,
-      glutenFree,
-    };
-
-    // 4) store in cache for future requests
-    recipeCache.set(recipe_id, recipe);
-    return recipe;
+async function getRecipeDetails(recipe_id, userId = null) {
+  // just delegate to the new universal function
+  return getRecipeInformation(recipe_id, userId);
 }
 
 /**
@@ -86,7 +133,7 @@ async function getRecipesPreview(recipe_ids) {
  */
 async function insertRecipe(user_id, recipeData) {
   const {
-    id, //not in use
+    id, 
     title,
     image,
     duration,
@@ -118,11 +165,11 @@ async function insertRecipe(user_id, recipeData) {
 /**
  * Search recipes using Spoonacular API
  */
-async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }) {
+async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit, userId = null }) {
   try {
     console.log("Calling Spoonacular with:", { query, cuisine, diet, intolerance, limit });
 
-    // 1) Initial search (IDs + basic fields)
+    // 1) Initial search (IDs  basic fields)
     const searchRes = await axios.get(`${api_domain}/complexSearch`, {
       params: {
         query,
@@ -130,25 +177,18 @@ async function searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit }
         diet,
         intolerances: intolerance,
         number: limit || 10,
-        apiKey: process.env.spooncular_apiKey,
+        apiKey: process.env.spoonacular_apiKey,
       },
     });
 
     const searchResults = searchRes.data.results;        // array of {id,title,image}
 
-    // 2) For each ID, fetch full info to get readyInMinutes
-    const infoPromises = searchResults.map(r =>
-      getRecipeInformation(r.id).then(info => ({
-        id:             r.id,
-        title:          r.title,
-        image:          r.image,
-        duration:       info.data.readyInMinutes,   // <-- add duration
-      }))
+    const recipesWithDuration = await Promise.all(
+    searchResults.map(r => getRecipeInformation(r.id, userId))
     );
-
-    // 3) Wait for all info requests
-    const recipesWithDuration = await Promise.all(infoPromises);
     return recipesWithDuration;
+
+
   } catch (error) {
     console.error("Spoonacular API call failed:", error.message);
     throw error; // let Express error-handler catch it
@@ -159,7 +199,7 @@ async function getRandomRecipesFromAPI(limit) {
   const response = await axios.get(`${api_domain}/random`, {
     params: {
       number: limit || 5,
-      apiKey: process.env.spooncular_apiKey,
+      apiKey: process.env.spoonacular_apiKey,
     },
   });
 
@@ -180,5 +220,6 @@ exports.getRecipesPreview = getRecipesPreview;
 exports.insertRecipe = insertRecipe;
 exports.searchRecipesFromAPI = searchRecipesFromAPI;
 exports.getRandomRecipesFromAPI = getRandomRecipesFromAPI;
-
+exports.getRecipeInformation = getRecipeInformation;
+exports.recipeCache = recipeCache;
 

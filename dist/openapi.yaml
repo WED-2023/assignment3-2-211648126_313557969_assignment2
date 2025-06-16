@@ -133,7 +133,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/RecipePreview'
+                  $ref: '#/components/schemas/Recipe'
 
   /recipes/{id}:
     get:
@@ -198,39 +198,44 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Recipe'
-
-  /users/family:
+  
+  /users/watched:
     get:
       tags: [User]
-      summary: Get user's family recipes
+      summary: Get user's watched recipes
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 5
+          description: Get users latest maximum number of watched recipes to return
       responses:
         '200':
-          description: Family recipes
+          description: List of watched recipes
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/FamilyRecipe'
+                  $ref: '#/components/schemas/Recipe'
+
     post:
       tags: [User]
-      summary: Add a new family recipe
+      summary: Mark recipe as watched
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FamilyRecipe'
+              type: object
+              properties:
+                recipeId:
+                  type: integer
+                  example: 101
       responses:
         '201':
-          description: Family recipe successfully created
-        '400':
-          description: Invalid input
-        '401':
-          description: Unauthorized - user not logged in
-        '500':
-          description: Internal server error
-
+          description: Recipe marked as watched
 
 components:
   schemas:
@@ -259,7 +264,7 @@ components:
         title: { type: string, example: Grandma's Apple Pie }
         image: { type: string, example: https://example.com/images/apple-pie.jpg }
         duration: { type: integer, example: 90 }
-        likes: { type: integer, example: 452 }
+        # likes: { type: integer, example: 452 }
         vegan: { type: boolean, example: false }
         vegetarian: { type: boolean, example: true }
         glutenFree: { type: boolean, example: false }
@@ -284,53 +289,52 @@ components:
             - Bake for 45 minutes
         servings: { type: integer, example: 6 }
     
-    FamilyRecipe:
-      type: object
-      required:
-        - title
-        - image
-        - occasion
-        - originator_name
-        - instructions
-        - ingredients
-      properties:
-        title:
-          type: string
-          example: Grandma's Apple Pie
-        image:
-          type: string
-          format: uri
-          example: https://example.com/images/apple-pie.jpg
-        occasion:
-          type: string
-          example: Holiday
-        originator_name:
-          type: string
-          example: Grandma Sarah
-        instructions:
-          type: string
-          example: |
-            Preheat oven to 180°C
-            Mix apples with sugar
-            Bake for 45 minutes
-        ingredients:
-          type: string
-          example: |
-            3 apples, sliced
-            2 cups flour
-            1/2 cup sugar
-    RecipePreview:
-      type: object
-      properties:
-        id:
-          type: integer
-          example: 101
-        title:
-          type: string
-          example: Grandma's Apple Pie
-        image:
-          type: string
-          example: https://example.com/images/apple-pie.jpg
-        duration:
-          type: integer
-          example: 45
+    # FamilyRecipe:
+    #   type: object
+    #   required:
+    #     - title
+    #     - image
+    #     - occasion
+    #     - originator_name
+    #     - instructions
+    #     - ingredients
+    #   properties:
+    #     title:
+    #       type: string
+    #       example: Grandma's Apple Pie
+    #     image:
+    #       type: string
+    #       format: uri
+    #       example: https://example.com/images/apple-pie.jpg
+    #     occasion:
+    #       type: string
+    #       example: Holiday
+    #     originator_name:
+    #       type: string
+    #       example: Grandma Sarah
+    #     instructions:
+    #       type: string
+    #       example: |
+    #         Preheat oven to 180°C
+    #         Mix apples with sugar
+    #         Bake for 45 minutes
+    #     ingredients:
+    #       type: string
+    #       example: |
+    #         3 apples, sliced
+    #         2 cups flour
+    #         1/2 cup sugar
+
+
+    # RecipePreview:
+    #   type: object
+    #   properties:
+    #     id:          { type: integer, example: 101 }
+    #     title:       { type: string,  example: Pasta Bolognese }
+    #     image:       { type: string,  example: https://…/pasta.jpg }
+    #     duration:    { type: integer, example: 35 }
+    #     vegan:       { type: boolean, example: false }
+    #     vegetarian:  { type: boolean, example: true }
+    #     glutenFree:  { type: boolean, example: false }
+    #     viewed:      { type: boolean, example: true }
+    #     favorite:    { type: boolean, example: false }

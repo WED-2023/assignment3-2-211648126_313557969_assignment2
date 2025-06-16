@@ -30,6 +30,7 @@ router.post('/favorites', async (req,res,next) => {
     const user_id = req.session.user_id;
     const recipe_id = req.body.recipeId;
     await user_utils.markAsFavorite(user_id,recipe_id);
+    recipe_utils.recipeCache.delete(recipe_id); // Clear cache for this recipe
     res.status(200).send("The Recipe successfully saved as favorite");
     } catch(error){
     next(error);
@@ -111,6 +112,60 @@ router.post('/family', async (req, res, next) => {
     res.status(201).send("Family recipe successfully created");
   } catch (error) {
     next(error);
+  }
+});
+
+// ─────────────────────────────────────────────────────────
+// POST /users/watched — Add a watched recipe
+// ─────────────────────────────────────────────────────────
+router.post("/watched", async (req, res, next) => {
+  try {
+    const { recipeId } = req.body;
+    const userId = req.session.user_id;
+
+    recipe_utils.recipeCache.delete(recipeId); // Clear cache for this recipe
+
+    // Insert into watched_recipes table
+    await DButils.execQuery(`
+      INSERT INTO watched_recipes (user_id, API_recipe_id, watched_at)
+      VALUES (${userId}, ${recipeId}, CURRENT_TIMESTAMP)
+    `);
+
+    res.status(201).send({ message: "Recipe marked as watched" });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────
+// GET /users/watched?limit=5 — Retrieve watched recipes
+// ─────────────────────────────────────────────────────────
+router.get("/watched", async (req, res, next) => {
+  try {
+    const userId = req.session.user_id;
+    const limit  = req.query.limit ? parseInt(req.query.limit) : null;
+
+    // 1. fetch the list of recipe IDs the user watched
+    let query = `
+      SELECT API_recipe_id
+      FROM watched_recipes
+      WHERE user_id = ${userId}
+      ORDER BY watched_at DESC
+    `;
+    if (limit) query += ` LIMIT ${limit}`;
+
+    const rows      = await DButils.execQuery(query);
+    const recipeIds = rows.map(r => r.API_recipe_id);
+
+    // 2. for each ID get the full object (adds fav/view flags automatically)
+    const recipePromises = recipeIds.map(id =>
+      recipe_utils.getRecipeInformation(id, userId)
+    );
+    const recipeDetails = await Promise.all(recipePromises);
+
+    res.status(200).send(recipeDetails);
+  } catch (err) {
+    next(err);
   }
 });
 

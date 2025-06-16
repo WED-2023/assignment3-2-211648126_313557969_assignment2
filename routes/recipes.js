@@ -3,6 +3,7 @@ var router = express.Router();
 const recipes_utils = require("./utils/recipes_utils");
 const DButils = require("./utils/DButils");
 
+
 //router.get("/", (req, res) => res.send("im here"));
 
 /**
@@ -55,7 +56,10 @@ router.get("/search", async (req, res, next) => {
   try {
     console.log("ROUTER SEARCH RECIPES FROM API")
     const { query, cuisine, diet, intolerance, limit } = req.query;
-    const results = await recipes_utils.searchRecipesFromAPI({ query, cuisine, diet, intolerance, limit });
+    const userId  = req.session?.user_id || null;
+    const results = await recipes_utils.searchRecipesFromAPI({
+      query, cuisine, diet, intolerance, limit, userId
+    });
     res.status(200).send(results);
   } catch (error) {
     next(error);
@@ -68,7 +72,8 @@ router.get("/search", async (req, res, next) => {
  */
 router.get("/:recipeId", async (req, res, next) => {
   try {
-    const recipe = await recipes_utils.getRecipeDetails(req.params.recipeId);
+    const userId  = req.session?.user_id || null;
+    const recipe = await recipes_utils.getRecipeDetails(req.params.recipeId,  userId);
     res.send(recipe);
   } catch (error) {
     next(error);
