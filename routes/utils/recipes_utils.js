@@ -220,5 +220,6 @@ exports.getRecipesPreview = getRecipesPreview;
 exports.insertRecipe = insertRecipe;
 exports.searchRecipesFromAPI = searchRecipesFromAPI;
 exports.getRandomRecipesFromAPI = getRandomRecipesFromAPI;
-
+exports.getRecipeInformation = getRecipeInformation;
+exports.recipeCache = recipeCache;
 

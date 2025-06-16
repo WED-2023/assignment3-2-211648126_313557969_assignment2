@@ -30,6 +30,7 @@ router.post('/favorites', async (req,res,next) => {
     const user_id = req.session.user_id;
     const recipe_id = req.body.recipeId;
     await user_utils.markAsFavorite(user_id,recipe_id);
+    recipe_utils.recipeCache.delete(recipe_id); // Clear cache for this recipe
     res.status(200).send("The Recipe successfully saved as favorite");
     } catch(error){
     next(error);
@@ -117,14 +118,16 @@ router.post('/family', async (req, res, next) => {
 // ─────────────────────────────────────────────────────────
 // POST /users/watched — Add a watched recipe
 // ─────────────────────────────────────────────────────────
-router.post("/watched", auth, async (req, res, next) => {
+router.post("/watched", async (req, res, next) => {
   try {
     const { recipeId } = req.body;
     const userId = req.session.user_id;
 
+    recipe_utils.recipeCache.delete(recipeId); // Clear cache for this recipe
+
     // Insert into watched_recipes table
     await DButils.execQuery(`
-      INSERT INTO watched_recipes (user_id, API_recipe_id, watch_time)
+      INSERT INTO watched_recipes (user_id, API_recipe_id, watched_at)
       VALUES (${userId}, ${recipeId}, CURRENT_TIMESTAMP)
     `);
 
@@ -137,7 +140,7 @@ router.post("/watched", auth, async (req, res, next) => {
 // ─────────────────────────────────────────────────────────
 // GET /users/watched?limit=5 — Retrieve watched recipes
 // ─────────────────────────────────────────────────────────
-router.get("/watched", auth, async (req, res, next) => {
+router.get("/watched", async (req, res, next) => {
   try {
     const userId = req.session.user_id;
     const limit  = req.query.limit ? parseInt(req.query.limit) : null;
@@ -147,7 +150,7 @@ router.get("/watched", auth, async (req, res, next) => {
       SELECT API_recipe_id
       FROM watched_recipes
       WHERE user_id = ${userId}
-      ORDER BY watch_time DESC
+      ORDER BY watched_at DESC
     `;
     if (limit) query += ` LIMIT ${limit}`;
 
