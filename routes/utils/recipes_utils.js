@@ -58,7 +58,7 @@ async function getRecipeInformation(recipe_id, userId = null) {
   const {
     id,
     title,
-    duration: duration,
+    readyInMinutes: duration,
     image,
     vegan,
     vegetarian,
