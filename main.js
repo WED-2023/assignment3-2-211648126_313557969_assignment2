@@ -8,6 +8,17 @@ const DButils = require("./routes/utils/DButils");
 var cors = require('cors')
 
 var app = express();
+
+app.use(express.json({ limit: '5mb' })); // or '10mb' depending on your needs
+
+
+const corsOptions = {
+  origin: 'http://localhost:8080',
+  credentials: true
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 app.use(logger("dev")); //logger
 app.use(express.json()); // parse application/json
 app.use(
