@@ -205,16 +205,12 @@ async function getRandomRecipesFromAPI(limit) {
     },
   });
 
+  console.log("The random recipes results are : ", response)
   // Format result like other previews
-  return response.data.recipes.map((recipe) => ({
-    id: recipe.id,
-    title: recipe.title,
-    image: recipe.image,
-    duration: recipe.readyInMinutes,
-    vegan: recipe.vegan,
-    vegetarian: recipe.vegetarian,
-    glutenFree: recipe.glutenFree,
-  }));
+  const randomResults = await Promise.all(response.data.recipes.map((recipe) => (
+    getRecipeInformation(recipe.id)
+  )));
+  return randomResults;
 }
 
 exports.getRecipeDetails = getRecipeDetails;
