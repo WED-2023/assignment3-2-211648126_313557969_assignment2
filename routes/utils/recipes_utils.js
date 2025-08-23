@@ -152,6 +152,8 @@ async function insertRecipe(user_id, recipeData) {
   const vegetarianVal = vegetarian ? 1 : 0;
   const glutenFreeVal = glutenFree ? 1 : 0;
 
+  console.log("Inserting recipe for user:", user_id, "Recipe title:", title);
+  console.log("duration:", duration, "servings:", servings, "instructions:", instructions, "ingredients:", ingredientsJSON, "vegan:", veganVal, "vegetarian:", vegetarianVal, "glutenFree:", glutenFreeVal);
   const insertQuery = `
   INSERT INTO user_recipes 
     (user_id, title, image, prep_time, servings, instructions, ingredients, is_vegan, is_vegetarian, is_gluten_free)
@@ -203,16 +205,12 @@ async function getRandomRecipesFromAPI(limit) {
     },
   });
 
+  console.log("The random recipes results are : ", response)
   // Format result like other previews
-  return response.data.recipes.map((recipe) => ({
-    id: recipe.id,
-    title: recipe.title,
-    image: recipe.image,
-    duration: recipe.readyInMinutes,
-    vegan: recipe.vegan,
-    vegetarian: recipe.vegetarian,
-    glutenFree: recipe.glutenFree,
-  }));
+  const randomResults = await Promise.all(response.data.recipes.map((recipe) => (
+    getRecipeInformation(recipe.id)
+  )));
+  return randomResults;
 }
 
 exports.getRecipeDetails = getRecipeDetails;
