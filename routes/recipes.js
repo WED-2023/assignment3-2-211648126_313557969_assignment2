@@ -50,10 +50,10 @@ router.post("/", async (req, res, next) => {
 
   try {
     const user_id = req.session.user_id;
-
+    console.log("Received a request to save the following recipe: ", req.body)
     const {
       title,
-      image, // base64 string or null
+      image, 
       duration,
       vegan,
       vegetarian,
@@ -63,11 +63,10 @@ router.post("/", async (req, res, next) => {
       servings
     } = req.body;
 
-    // Optional: validate types if needed
 
     await recipes_utils.insertRecipe(user_id, {
       title,
-      image, // store as base64 or convert to file before saving
+      image,
       duration,
       vegan,
       vegetarian,

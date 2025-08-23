@@ -124,7 +124,10 @@ router.post("/watched", async (req, res, next) => {
     const userId = req.session.user_id;
 
     recipe_utils.recipeCache.delete(recipeId); // Clear cache for this recipe
-
+    await DButils.execQuery(`
+      DELETE FROM watched_recipes
+      WHERE user_id = ${userId} AND API_recipe_id = ${recipeId}
+    `);
     // Insert into watched_recipes table
     await DButils.execQuery(`
       INSERT INTO watched_recipes (user_id, API_recipe_id, watched_at)
