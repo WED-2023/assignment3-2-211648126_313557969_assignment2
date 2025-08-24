@@ -10,10 +10,15 @@ async function getFavoriteRecipes(user_id){
 }
 
 async function getUserRecipes(user_id) {
-    const recipes = await DButils.execQuery(`
-        SELECT * FROM user_recipes WHERE user_id='${user_id}'
-    `);
-    return recipes;
+  const recipes = await DButils.execQuery(`
+    SELECT * FROM user_recipes WHERE user_id='${user_id}'
+  `);
+
+  return recipes.map(r => ({
+    ...r,
+    steps: r.instructions ? JSON.parse(r.instructions) : [],
+    ingredients: r.ingredients ? JSON.parse(r.ingredients) : []
+  }));
 }
 
 

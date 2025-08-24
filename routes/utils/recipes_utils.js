@@ -154,12 +154,21 @@ async function insertRecipe(user_id, recipeData) {
 
   console.log("Inserting recipe for user:", user_id, "Recipe title:", title);
   console.log("duration:", duration, "servings:", servings, "instructions:", instructions, "ingredients:", ingredientsJSON, "vegan:", veganVal, "vegetarian:", vegetarianVal, "glutenFree:", glutenFreeVal);
+
+  // Fallback image if none is provided
+  const fallbackImage = "https://cdn-icons-png.freepik.com/512/8685/8685621.png";
+
+  // If image is null/undefined/empty, use fallback
+  const safeImage = image 
+    ? image.replace(/'/g, "''") 
+    : fallbackImage;
+
   const insertQuery = `
-  INSERT INTO user_recipes 
-    (user_id, title, image, prep_time, servings, instructions, ingredients, is_vegan, is_vegetarian, is_gluten_free)
-  VALUES 
-    (${user_id}, '${title.replace(/'/g, "''")}', '${image.replace(/'/g, "''")}', ${duration}, ${servings}, '${instructions}', '${ingredientsJSON}', ${veganVal}, ${vegetarianVal}, ${glutenFreeVal});
-    `;
+    INSERT INTO user_recipes 
+      (user_id, title, image, prep_time, servings, instructions, ingredients, is_vegan, is_vegetarian, is_gluten_free)
+    VALUES 
+      (${user_id}, '${title.replace(/'/g, "''")}', '${safeImage}', ${duration}, ${servings}, '${instructions}', '${ingredientsJSON}', ${veganVal}, ${vegetarianVal}, ${glutenFreeVal});
+  `;
 
   await DButils.execQuery(insertQuery);
 }
