@@ -159,14 +159,7 @@ router.get("/watched", async (req, res, next) => {
 
     const rows      = await DButils.execQuery(query);
     const recipeIds = rows.map(r => r.API_recipe_id);
-
-    // 2. for each ID get the full object (adds fav/view flags automatically)
-    const recipePromises = recipeIds.map(id =>
-      recipe_utils.getRecipeInformation(id, userId)
-    );
-    const recipeDetails = await Promise.all(recipePromises);
-
-    res.status(200).send(recipeDetails);
+    res.status(200).send(recipeIds);
   } catch (err) {
     next(err);
   }
